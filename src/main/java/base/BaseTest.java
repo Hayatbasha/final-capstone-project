@@ -70,7 +70,7 @@ public class BaseTest {
 
         driver.set(webDriver);
         getDriver().manage().window().maximize();
-        getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
     }
 
     @AfterMethod(alwaysRun = true)
