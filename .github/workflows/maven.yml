@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs every day at 6:00 AM India time (00:30 UTC)
     - cron: '30 0 * * *'
-  workflow_dispatch:  # allows manual trigger
+  workflow_dispatch:
 
 jobs:
   run-automation:
@@ -18,14 +18,14 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'  # or 11 if your project needs it
+          java-version: '17'
 
       - name: Install Google Chrome
         run: |
           sudo apt update
           sudo apt install -y wget gnupg unzip
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
           sudo apt update
           sudo apt install -y google-chrome-stable
           google-chrome --version
@@ -34,4 +34,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key:
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build and Run Tests
+        env:
+          CI: true  # for headless mode
+        run: mvn clean test
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: target/surefire-reports/
