@@ -3,6 +3,7 @@ package base;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.OutputType;
@@ -42,14 +43,28 @@ public class BaseTest {
                 WebDriverManager.firefoxdriver().setup();
                 webDriver = new FirefoxDriver();
                 break;
+
             case "edge":
                 WebDriverManager.edgedriver().setup();
                 webDriver = new EdgeDriver();
                 break;
+
             case "chrome":
             default:
                 WebDriverManager.chromedriver().setup();
-                webDriver = new ChromeDriver();
+
+                ChromeOptions options = new ChromeOptions();
+
+                // --- HEADLESS CONFIG FOR GITHUB ACTIONS ---
+                if (System.getenv("CI") != null) {  // detects CI environment
+                    options.addArguments("--headless=new");
+                    options.addArguments("--no-sandbox");
+                    options.addArguments("--disable-dev-shm-usage");
+                    options.addArguments("--disable-gpu");
+                    options.addArguments("--window-size=1920,1080");
+                }
+
+                webDriver = new ChromeDriver(options);
                 break;
         }
 
