@@ -1,5 +1,4 @@
 import base.BaseTest;
-import org.openqa.selenium.WebDriver;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -10,27 +9,56 @@ import utils.LoggerUtil;
 public class StockInfoTest extends BaseTest {
 
     @Test(dataProvider = "excelData")
-    public void verifyStockInformation(String stockName) throws InterruptedException {
+    public void verifyStockInformation(String stockName, String expectedHigh, String expectedLow) throws InterruptedException {
+
+        LoggerUtil.info("--------------------------------------------------------");
+        LoggerUtil.info("🔍 Starting validation for stock: " + stockName);
+        LoggerUtil.info("--------------------------------------------------------");
+
         NseHomePage nsePage = new NseHomePage(getDriver());
+
+        LoggerUtil.info("🌐 Opening NSE website...");
         nsePage.openSite();
-        LoggerUtil.info("Opened NSE India website.");
 
+        LoggerUtil.info("🔎 Searching for stock: " + stockName);
         nsePage.searchStock(stockName);
-        LoggerUtil.info("Searched for stock: " + stockName);
 
-        String high = nsePage.get52WeekHigh();
-        String low = nsePage.get52WeekLow();
+        LoggerUtil.info("📥 Fetching 52-week high & low values from UI...");
 
-        LoggerUtil.info("52 Week High: " + high);
-        LoggerUtil.info("52 Week Low: " + low);
+        String uiHigh = nsePage.get52WeekHigh().replace(",", "").trim();
+        String uiLow  = nsePage.get52WeekLow().replace(",", "").trim();
 
-        Assert.assertNotNull(stockName, "Company name is missing");
-        Assert.assertFalse(stockName.trim().isEmpty(), "Company name is empty");
-        Assert.assertTrue(high.matches("[\\d,]+(\\.\\d+)?"), "Invalid 52 week high value!");
-        Assert.assertTrue(low.matches("[\\d,]+(\\.\\d+)?"), "Invalid 52 week low value!");
+        double uiHighVal = Double.parseDouble(uiHigh);
+        double uiLowVal  = Double.parseDouble(uiLow);
 
-        Assert.assertNotNull(high, "52 Week High value is missing!");
-        Assert.assertNotNull(low, "52 Week Low value is missing!");
+        LoggerUtil.info("📊 UI Values → High: " + uiHighVal + " | Low: " + uiLowVal);
+
+        double expectedHighVal = Double.parseDouble(expectedHigh.replace(",", "").trim());
+        double expectedLowVal  = Double.parseDouble(expectedLow.replace(",", "").trim());
+
+        LoggerUtil.info("📘 Excel Values → Expected High: " + expectedHighVal + " | Expected Low: " + expectedLowVal);
+
+        // --- Assertion Logging ---
+        if (uiHighVal != expectedHighVal) {
+            LoggerUtil.error("❌ HIGH value mismatch for " + stockName +
+                    " | Expected: " + expectedHighVal + " | Actual: " + uiHighVal);
+        } else {
+            LoggerUtil.info("✅ HIGH value matched: " + uiHighVal);
+        }
+
+        if (uiLowVal != expectedLowVal) {
+            LoggerUtil.error("❌ LOW value mismatch for " + stockName +
+                    " | Expected: " + expectedLowVal + " | Actual: " + uiLowVal);
+        } else {
+            LoggerUtil.info("✅ LOW value matched: " + uiLowVal);
+        }
+
+        // --- Hard Assertions ---
+        Assert.assertEquals(uiHighVal, expectedHighVal, "52 Week HIGH mismatch for: " + stockName);
+        Assert.assertEquals(uiLowVal, expectedLowVal, "52 Week LOW mismatch for: " + stockName);
+
+        LoggerUtil.info("🎉 Validation completed successfully for: " + stockName);
+        LoggerUtil.info("--------------------------------------------------------");
     }
 
     @DataProvider(name = "excelData", parallel = true)
@@ -39,4 +67,3 @@ public class StockInfoTest extends BaseTest {
         return ExcelUtil.getStockData(filePath, "Sheet1");
     }
 }
-

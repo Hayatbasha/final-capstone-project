@@ -10,7 +10,9 @@ import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
+
 import org.apache.commons.io.FileUtils;
+import utils.ConfigReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +22,6 @@ import java.util.Arrays;
 
 public class BaseTest {
 
-    // ThreadLocal for parallel testing
     protected static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
 
     public WebDriver getDriver() {
@@ -29,13 +30,21 @@ public class BaseTest {
 
     @Parameters("browser")
     @BeforeMethod(alwaysRun = true)
-    public void setUp(@Optional("chrome") String browser, Method method, Object[] data) {
-        WebDriver webDriver = null;
+    public void setUp(@Optional String browserParam, Method method, Object[] data) {
 
-        // ---------- PRINT TEST HEADER ----------
+        String browser = (browserParam == null || browserParam.isEmpty())
+                ? ConfigReader.get("browser")           // read from config
+                : browserParam;                         // read from XML if passed
+
+        boolean headless = ConfigReader.getBoolean("headless");
+        int implicitWait = ConfigReader.getInt("implicitWait");
+
+        WebDriver webDriver;
+
         System.out.println("\n======================================================");
         System.out.println("🚀 Starting Test: " + method.getName() + " | Data: " + Arrays.toString(data));
-        System.out.println("Browser: " + browser.toUpperCase());
+        System.out.println("Browser in Use: " + browser.toUpperCase());
+        System.out.println("Headless Mode: " + headless);
         System.out.println("======================================================");
 
         switch (browser.toLowerCase()) {
@@ -52,16 +61,19 @@ public class BaseTest {
             case "chrome":
             default:
                 WebDriverManager.chromedriver().setup();
-
                 ChromeOptions options = new ChromeOptions();
 
-                // --- HEADLESS CONFIG FOR GITHUB ACTIONS ---
-                if (System.getenv("CI") != null) {  // detects CI environment
+                if (headless) {
                     options.addArguments("--headless=new");
                     options.addArguments("--no-sandbox");
-                    options.addArguments("--disable-dev-shm-usage");
                     options.addArguments("--disable-gpu");
                     options.addArguments("--window-size=1920,1080");
+                }
+
+                // CI environments
+                if (System.getenv("CI") != null) {
+                    options.addArguments("--headless=new");
+                    options.addArguments("--disable-dev-shm-usage");
                 }
 
                 webDriver = new ChromeDriver(options);
@@ -70,12 +82,12 @@ public class BaseTest {
 
         driver.set(webDriver);
         getDriver().manage().window().maximize();
-        getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+        getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(implicitWait));
     }
 
     @AfterMethod(alwaysRun = true)
     public void tearDown(ITestResult result) {
-        // ---------- PRINT TEST FOOTER ----------
+
         System.out.println("======================================================");
         System.out.println("✅ Completed Test: " + result.getMethod().getMethodName() +
                 " | Status: " + (result.isSuccess() ? "PASSED" : "FAILED"));
@@ -87,7 +99,6 @@ public class BaseTest {
         }
     }
 
-    // Utility for screenshots
     public String takeScreenshot(String fileName) {
         File srcFile = ((TakesScreenshot) getDriver()).getScreenshotAs(OutputType.FILE);
         String destPath = System.getProperty("user.dir") + "/screenshots/" + fileName + ".png";

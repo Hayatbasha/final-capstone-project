@@ -1,9 +1,6 @@
 package pages;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -47,6 +44,26 @@ public class NseHomePage {
 
     public String get52WeekHigh() {
         By highLocator = By.id("week52highVal");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+
+        // Ensure page fully loads
+        wait.until(d -> ((JavascriptExecutor) d)
+                .executeScript("return document.readyState").equals("complete"));
+
+        // Scroll to element (Firefox especially needs this)
+        WebElement highElement = wait.until(ExpectedConditions.presenceOfElementLocated(highLocator));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", highElement);
+
+        // Now wait for correct value
+        return wait.until(d -> {
+            String value = highElement.getText().trim();
+            return (!value.isEmpty() && !value.equals("-")) ? value : null;
+        });
+    }
+
+    /*
+    public String get52WeekHigh() {
+        By highLocator = By.id("week52highVal");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
         // Wait until text is non-empty
@@ -55,7 +72,7 @@ public class NseHomePage {
             return !text.isEmpty() && !text.equals("-") ? text : null;
         });
     }
-
+*/
     public String get52WeekLow() {
         By lowLocator = By.id("week52lowVal");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
